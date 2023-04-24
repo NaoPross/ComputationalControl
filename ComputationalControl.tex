@@ -1,0 +1,422 @@
+% !TeX program = xelatex
+% !TeX encoding = utf8
+% !TeX root = ComputationalControl.tex
+% vim: ts=2 sw=2 et tw=78 spell:
+
+\documentclass[margin=small]{hsrzf}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Packages
+
+%% The OST Student's package
+\usepackage{oststud}
+
+%% Language configuration
+\usepackage{polyglossia}
+\setdefaultlanguage{english}
+\setotherlanguage[variant=swiss]{german}
+
+%% Stuff for figures
+\usepackage{skeldoc}
+\usepackage{subcaption}
+
+%% Mathematics
+\usepackage{amsmath}
+\usepackage{amsthm}
+
+%% Fix itemize and enumerates
+\usepackage[]{enumitem}
+
+%% License configuration
+\usepackage[
+  type={CC},
+  modifier={by-nc-sa},
+  version={4.0},
+]{doclicense}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Metadata
+
+\course{Electrical Engineering Msc.}
+\module{Computational Control}
+\semester{Spring Semester 2023}
+
+\authoremail{npross@student.ethz.ch}
+\author{\textsl{Naoki Sean Pross} -- \texttt{\theauthoremail}}
+
+% did someone help you with this work?
+\contributors{
+  % I created this template, does that count?
+  Naoki Pross
+  % do not forget to add yourself!
+}
+
+\title{\themodule{} Notes}
+\date{\thesemester}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Macros
+
+\DeclareMathOperator{\minimize}{\text{minimize }}
+\newcommand{\reals}{\ensuremath{\mathbb{R}}}
+
+\newtheorem{defn}{Definition}
+\newtheorem{thm}{Theorem}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Document
+
+\begin{document}
+
+% use roman numberals for introductiory pages
+\pagenumbering{roman}
+
+\maketitle
+
+% \begin{abstract}
+% \end{abstract}
+
+% show the names of the people who contributed to this document.
+% \section*{Contributors}
+% \thecontributors
+
+\tableofcontents
+
+\section*{License}
+\doclicenseThis
+
+% actual content
+\clearpage
+\setcounter{page}{1}
+\pagenumbering{arabic}
+
+% I like to use 2 columns, you can remove this line to have one column.
+\twocolumn
+
+\section{Basic Concepts in Convex Optimization}
+
+The core decision of most computational control scheme is as follows:
+\begin{align*}
+  \minimize_{\vec{x} \in\mathcal{X}} &\quad f(\vec{x})  \\
+  \text{subject to} &\quad g(\vec{x}) \leq 0 \\ &\quad h(\vec{x}) = 0.
+\end{align*}
+We call $\vec{x}\in\mathcal{X} \subseteq \reals^n$ the \emph{decision
+variable}, $f : \reals^n \to \reals$ the \emph{cost function}, $g: \reals^n
+\to \reals^m$ the \emph{inequality constraints} and $h: \reals^n \to \reals^p$
+the \emph{equality constraints}.
+
+\begin{defn}[Convex set]
+  A set $\mathcal{X}$ is convex if for $\vec{x}' \in \mathcal{X}$ and
+  $\vec{x}'' \in \mathcal{X}$ and for all $t \in [0,1]$
+  \[
+    t\vec{x}' + (1-t)\vec{x}'' \in \mathcal{X},
+  \]
+  i.e. if every convex combination is in the set $\mathcal{X}$.
+\end{defn}
+Some common convex sets are half spaces $\{\vec{x} : \mt{\vec{a}} \vec{x} \leq
+\vec{b}\}$ and balls $\{\vec{x}: \|\vec{x} - \vec{c}\| < r\}$. Intersections of
+half spaces are also convex sets and are called polytopes.
+
+\begin{defn}[Convex function]
+  A function $\phi$ is said to be convex if for $\vec{x}', \vec{x}'' \in
+  \mathcal{X}$ and for all $t \in [0,1]$
+  \[
+    \phi(t\vec{x}' + (1-t)\vec{x}'')
+    \leq t\phi(\vec{x}') + (1-t)\phi(\vec{x}'').
+  \]
+\end{defn}
+In other words, $\phi$ is convex if every point between $\vec{x}'$ and
+$\vec{x}''$ is below the straight line (hyperplane) from $\vec{x}'$ to
+$\vec{x}''$. Some common convex functions include: affine functions
+$f(\vec{x}) = \mt{\vec{a}} \vec{x} + b$, norms $f(\vec{x}) = \|\vec{x} -
+\vec{c}\|$ and quadratics $f(\vec{x}) = \mt{\vec{x}}\mx{A}\vec{x} +
+\mt{\vec{b}}\vec{x}$, where $\mx{A} \succeq 0$ (is positive semidefinite). 
+
+\begin{thm}
+  When $g(x)$ is a convex function $\iff$ the set $\{g(x) \leq c\}$ is convex.
+\end{thm}
+
+\begin{figure*} \centering
+  \begin{subfigure}{.3\linewidth}
+    \skelfig[width=\linewidth]
+    \caption{Convex function}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}{.3\linewidth}
+    \skelfig[width=\linewidth]
+    \caption{Supporting hyperplane}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}{.3\linewidth}
+    \skelfig[width=\linewidth]
+    \caption{First order condition}
+  \end{subfigure}
+  \caption{
+    Intuition for convex optimization.
+  }
+\end{figure*}
+
+\begin{thm}
+  If a set is convex, then there exists a supporting hyperplane at every point
+  on its boundary.
+\end{thm}
+For example for the half space $\{\vec{x} : g(\vec{x}) \leq 0\}$ the supporting
+hyperplane at the point $\vec{z}$ is $\{\vec{x}: \mt{\grad g(\vec{z})} (\vec{x}
+- \vec{z}) \leq 0\}$
+
+\begin{thm}[First order condition]
+  If $f$ is differentiable on a convex domain $\vec{X}$, then for all
+  $\vec{x}, \vec{y} \in \mathcal{X}$
+  \[
+    f \text{ is convex } \iff
+    f(\vec{y}) \geq f(\vec{x}) + \mt{\grad f(\vec{x})} (\vec{y} - \vec{x}).
+  \]
+\end{thm}
+
+\begin{thm}[Second order condition]
+  If $f$ is differentiable on a convex domain $\mathcal{X}$, then for all
+  $\vec{x} \in \mathcal{X}$
+  \[
+    f \text{ is convex } \iff
+    \laplacian f(\vec{x}) \succeq 0,
+  \]
+  i.e. the Hessian is positive semidefinite.
+\end{thm}
+
+Optimization problems where $\mathcal{X}$ is a convex set, the cost function
+$f$ and inequality constraints $g$ are both convex functions and additionally
+where the equality constraints $h$ are affine (also convex) are (uncreatively)
+called convex (optimization) problems. It follows that convex optimization
+problems have the feasible set $\mathcal{X} \cap \{\vec{x}: g(\vec{x}) \leq
+0\} \cap \{\vec{x}: h(\vec{x}) = 0\}$, which is also convex.
+
+This class of optimization problems is computationally much easier to solve
+because of the following theorem. 
+
+\begin{thm}
+  Any local optimum of a convex problem is a global optimum.
+  \begin{proof}
+    To say that $\vec{x}^\star$ is the local optimum is the same as saying
+    that there exists an $R$ such that $f(\vec{z}) \geq f(\vec{x}^\star)$ for
+    all feasible $\vec{z}$ with $\|\vec{z} - \vec{x}^\star\| \leq R$.
+
+    Now suppose $\vec{x}^\star$ is locally optimal but there esists an
+    $\vec{y}$ such that $f(\vec{y}) < f(\vec{x}^\star)$ (is better). Consider
+    $\vec{z} = t\vec{y} + (1-t)\vec{x}^\star$ with $t = R/(2\|\vec{y} -
+    \vec{x}^\star\|)$. $\vec{z}$ is feasible because of convexity and
+    $\vec{z}$ is inside the ball of radius $R$ since $\|\vec{z} -
+    \vec{x}^\star\| = t\|\vec{y} - \vec{x}^\star\| = R/2$. However, because
+    $f$ is convex
+    \[
+      f(\vec{z}) \leq tf(\vec{y}) + (1-t)f(\vec{x}^\star) = f(\vec{x}^\star)
+    \]
+    which contradicts the local optimality assumption.
+  \end{proof}
+\end{thm}
+
+\begin{thm}
+  $\vec{x}^\star$ is a local optimum for a differentiable problem if and only
+  if $\mt{\grad f(\vec{x}^\star})(\vec{y} - \vec{x}) \leq 0$ for all feasible
+  $\vec{y}$.
+\end{thm}
+
+Now, to solve a convex optimization in practice we can use iterative
+gradient-based algorithms, interior point algorithms, or iteratively solving
+the KKT conditions (method of Lagrange multipliers)
+\[
+  \begin{cases}
+    \grad f(\vec{x}) + \mt{\vec{\lambda}}\grad h(\vec{x})
+      + \mt{\vec{\mu}} \grad g(\vec{x}) = 0, \qquad \vec{\mu} \geq 0 \\
+    g(\vec{x}) \leq 0, \quad h(\vec{x}) = 0, \\
+    \mu_i g_i(\vec{x}) = 0 \quad \forall i.
+  \end{cases}
+\]
+
+\section{Dynamic Programming and LQR}
+
+We consider the control task without any disturbance, where whe have to find a
+sequence $\vec{u} = u_0$, $u_1$, $\ldots,$ $u_T$ such that it satisfies
+$\min_{\vec{u} \in \mathcal{U}} J(\vec{u})$ where we $J$ is the ``cost'' of
+the sequence of feasible inputs from the set $\mathcal{U} =
+\tilde{\mathcal{U}} \times \{0,1,\ldots,T\}$. As is stated now, this control
+task is intractable because of the following problems:
+\begin{itemize}
+  \item The model of the dynamics of the system may be non-convex, non-linear
+    or inaccurate;
+  \item The optimization problem may not be convex;
+  \item This is an open-loop strategy (not robust).
+\end{itemize}
+Hence, to simplify the task we assume that the system has a Markovian
+representation. That is
+\begin{enumerate}
+  \item There exists a Markovian state that evolves (in discrete-time) according to
+    $x_{t+1} = f_t(x_t, u_t)$, i.e. the current state has enough information
+    to predict the next state;
+  \item The initial condition $x_0$ is known;
+  \item The cost $J$ is additive over time, i.e.
+    $J(\vec{u}) = \sum_t g_t(x_t, u_t)$
+\end{enumerate}
+With the Markovian assumption the control task becomes
+\begin{align*}
+  \min_{\vec{u}, \vec{x}} &\quad \sum_{t=0}^T g_t(x_t, u_t) \\
+  \text{subject to} &\quad x_{t+1} = f_t(x_t, u_t), \quad x_0 = X_0 \\
+  &\quad x_t \in \mathcal{X}_t,\quad u_t \in \mathcal{U}_t \quad \forall t,
+\end{align*}
+for some functions $f_0, \ldots, f_T$ and $g_0, \ldots, g_T$. Further, the
+assumption allows us to make use of Bellman's principle of optimality.
+
+\begin{thm}[Bellman's principle of optimality]
+  An optimal policy has the property that whatever the initial state and the
+  initial decisions are, the remaining decision must constitute an optimal
+  policy with regard to the state resulting from the first decision.
+\end{thm}
+
+In practice applying Bellman principle means that we can rewrite the problem
+using smaller stage problems or ``value functions'' of the form
+\[
+  V_t(x_t) = \min_{u_t} \left\{
+    g_t(x_t, u_t) + V_{t+1}(f_t(x_t, u_t))
+  \right\}
+\]
+where $V_{t+1}$ is the smaller stage subproblem
+\begin{align*}
+  V_{t+1}(x_t) = \min_{\substack{{u_t,\ldots,u_T} \\ {x_t,\ldots,x_T}}}
+    &\quad \sum_{s={t+1}}^T g_s(x_s, u_s) \\
+  \text{subject to} &\quad x_{s+1} = f_s(x_s, u_s), \\
+    &\quad x_{t+1} = f_{t}(x_{t}, u_{t}),
+\end{align*}
+and we separate the terminal cost $V_T(x_T) = g_T(x_T)$ for convenience later.
+This decomposition into subproblems allows us to solve the problem using
+backward induction (dynamic programming) and is particularly easy to solve
+when the following holds:
+\begin{itemize}
+  \item The decision space $\tilde{\mathcal{U}}$ is convex;
+  \item $g_t$ is convex in $u_t$;
+  \item $V_{t+1} \circ f_t$ is convex in $u_t$.
+\end{itemize}
+In practice, to satisfy these requirement we have a \emph{quadratic cost
+function} $g$ and \emph{(time-invariant) linear system dynamics} for $f$.
+
+\subsection{Optimal Linear Quadratic Regulator (LQR)}
+
+The linear quadratic regulator is just the closed form solution to the problem
+described previous section, where there is a linear time-invariant Markovian
+update and a quadratic cost function:
+\begin{gather*}
+  \vec{x}_{t+1} = \mx{A} \vec{x}_{t} + \mx{B} \vec{u}_t, \text{ and } \\
+  \sum_{t=0}^{T-1} \left(
+      \mt{\vec{x}}_t \mx{Q} \vec{x}_t + \mt{\vec{u}}_t \mx{R} \vec{u}_t
+    \right)
+    + \vec{x}_T \vec{S} \vec{x}_T,
+\end{gather*}
+respectively, with $\mx{Q},\mx{S} \succeq 0$, $\mx{R}\succ 0$. Then
+\begin{align*}
+  V_t(\vec{x}) = \min_{\vec{u}_t, \ldots, \vec{u}_{T-1}}
+    &\sum_{s=t} \left(
+      \mt{\vec{x}}_s \mx{Q} \vec{x}_s + \mt{\vec{u}_s} \mx{R} \vec{u}_s
+    \right)
+    + \vec{x}_T \vec{S} \vec{x}_T \\
+  \text{subject to} &\quad \vec{x}_{s+1}
+      = \mx{A} \vec{x}_s + \mx{B} \vec{u}_s, \\
+    &\quad \vec{x}_t = \vec{x}.
+\end{align*}
+
+This problem can be solved recursively by showing that there is a
+$\mx{P}_{t+1}$ such that $V_{t+1}(\vec{x}) = \mt{\vec{x}} \mx{P}_{t+1} \vec{x}$, and
+then using induction over $V_t$ (replace $V_{t+1}$ with quadratic form, find
+min $\vec{u}$ by setting the gradient w.r.t $\vec{u}$ to zero).
+
+\begin{thm}[Optimal LQR]
+  The sequence of inputs
+  \[
+    \vec{u}_t = -\minv{(\mx{R} + \mt{\mx{B}} \mx{P}_{t+1} \mx{B})}
+      \mt{\mx{B}} \mx{P}_{t+1} \mx{A} \vec{x}_t = \vec{\Gamma}_{t} \vec{x}_t
+  \]
+  where
+  \[
+    \mx{P}_{t-1} = \mx{Q} + \mt{\mx{A}} \mx{P}_t \mx{A}
+      - \mt{\mx{A}} \mx{P}_t \mx{B} \minv{
+        (\mx{R} + \mt{\mx{B}} \mx{P}_t \mx{B})
+      } \mt{\mx{B}} \mx{P}_t \mx{A}
+  \]
+  and $\mx{P}_T = \mx{S}$ is optimal.
+\end{thm}
+
+\subsection{Infinite Horizon LQR}
+
+The optimal LQR solution of the previous section has a finite time horizon
+$T$, and is thus in a certain sense ``short sighted''. If we take the limit
+$T \to \infty$ we obtain the \emph{infinite} horizon LQR, which is useful for
+persistent tracking and regulation and yields a time-invariant feedback
+control law that requires less memory in online computation. The problem then
+becomes
+\begin{gather*}
+  \min_{\vec{x}, \vec{u}} \sum_{t=0}^\infty \left(
+    \mt{\vec{x}}_t \mx{Q} \vec{x}_t + \mt{\vec{u}}_t \mx{R} \vec{u}_t
+  \right),\quad \mx{Q} \succeq 0, \mx{R} \succ 0, \\
+  \text{subject to}\quad \vec{x}_{t+1} = \mx{A} \vec{x}_t + \mx{B} \vec{u}_t,
+    \quad \vec{x}_0 = \vec{X}_0.
+\end{gather*}
+
+\begin{thm}[Feasibility of infinite LQR]
+  If the system is stabilizable, then there is an input sequence that yields a
+  finite cost.
+\end{thm}
+
+\begin{thm}
+  For $t\to -\infty$ (i.e. $T\to\infty$) the LQR recursion of $\mx{P}_t$, with
+  $\mx{P}_0 = \mx{0}$ converges to a solution $\mx{P}_\infty \succ 0$ of the
+  algebraic Riccati equation (ARE) 
+  \[
+    \mx{P} = \mx{Q} + \mt{\mx{A}} \mx{P} \mx{A}
+      - \mt{\mx{A}} \mx{P} \mx{B} \minv{
+        (\mx{R} + \mt{\mx{B}} \mx{P} \mx{B})
+      } \mt{\mx{B}} \mx{P} \mx{A}.
+  \]
+\end{thm}
+
+\begin{thm}[Optimal infinite horizon LQR]
+  The sequence of inputs given by
+  \[
+    \vec{u}_t = -\minv{(\mx{R} + \mt{\mx{B}} \mx{P}_\infty \mx{B})}
+      \mt{\mx{B}} \mx{P}_\infty \mx{A} \vec{x}_t
+        = \mx{\Gamma}_\infty \vec{x}_t
+  \]
+  minimizes the infinite horizon control cost and yields $V(\vec{X}_0) =
+  \mt{\vec{X}}_0 \mx{P}_\infty \vec{X}_0$.
+\end{thm}
+
+Because the infinite horizon LQR results in a time-invariant control law it is
+meaningful to ask about stability of this solution using the theory of LTI
+systems. In particular we are concerned with stability.
+
+\begin{thm}
+  % TODO email and ask about notation on slide 22 of deck 02 about K_\infty and
+  % \Gamma_\infty
+  Let $\mx{Q} = \mx{C}\mt{\mx{C}}$. The feedback law $\mx{\Gamma}_\infty$
+  stabilizes the system if and only if
+  \[
+    \mx{x}_{t+1} = \mx{A} \vec{x}_t, \quad \vec{y}_t = \mx{C} \vec{x}_t,
+  \]
+  does not have unobservable unstable modes.
+\end{thm}
+
+In practice if the system has unstable dynamics: either the unstable states need to
+be weighted in the cost function, or use the following (if applicable).
+
+\begin{thm} \,\newline
+  \begin{enumerate}
+    \item There is at most one stabilizing solution $\mx{P}_S$ to the ARE;
+    \item Of all the solutions, it is  the one that yields the largest cost:
+      $\mx{P}_S \succeq \bar{\mx{P}}$ for all $\bar{\mx{P}}$ that solve the
+      ARE;
+    \item (If $\mx{P}_\infty$ is stabilizing, it is the only solution to the
+      ARE);
+    \item $\mx{P}_S$ is the limit of the backward induction initialized at any
+      $\mx{P}_0 \neq \mx{0}$;
+    \item Then, $\mx{P}_S$ is the optimal stabilizing feedback.
+  \end{enumerate}
+\end{thm}
+
+\end{document}
